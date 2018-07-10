@@ -131,6 +131,16 @@ else
   time_opts="--format=%e --output=${outfile} --append"
 fi
 
+# compression testing function 
+# args: compression bin, compression level, other compression flags, decompression bin, decompression flags
+test_routine() {
+  echo "Testing ${1} at compression level ${2}:" | tee ${outfile}
+  time ${time_opts} ${1} ${3} -${2} ${tmp}/${file} | tee ${outfile}
+  du ${tmp}/${file} | tee ${outfile}
+  echo "Testing ${4} at compression level ${2}:" | tee ${outfile}
+  time ${time_opts} ${4} ${5} ${tmp}/${file} | tee ${outfile}
+}
+
 # do the tests
 if [[ ${zip} == 'on' ]]; then
   for ((i=${min};i<=${max};i++)); do
