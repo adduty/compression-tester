@@ -42,31 +42,6 @@ max='9'
 file=''
 outfile=''
 
-# while getopts ":n:x:h" opt; do
-# 	case ${opt} in
-# 		n)
-# 			min=${OPTARG}
-# 			if [[ ${OPTARG} -lt '0' ]]; then
-# 				echo 'min value cannot be less than 0.'
-# 				exit 1
-# 			fi
-# 			;;
-# 		x)
-# 			max=${OPTARG}
-# 			if [[ ${OPTARG} -gt '9' || ${OPTARG} -lt ${min} ]]; then
-# 				echo 'max value cannot be greater than 9 and must be greater than or equal to min value.'
-# 				exit 1
-# 			fi
-# 			;;
-# 		h)
-# 			usage
-# 			;;
-# 		*)
-# 			usage
-# 			;;
-# 	esac
-# done
-
 declare -A algs
 algs=( ['bzip2']='off' ['xz']='off' ['gzip']='off' ['lzma']='off' ['lzip']='off' ['lzop']='off' ['compress']='off' )
 zip='off'
