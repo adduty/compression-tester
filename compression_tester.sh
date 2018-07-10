@@ -46,7 +46,7 @@ declare -A algs
 algs=( ['bzip2']='off' ['xz']='off' ['gzip']='off' ['lzma']='off' ['lzip']='off' ['lzop']='off' ['compress']='off' )
 zip='off'
 
-OPTS=`getopt -o n:x:f:o:h --long minimum:,maximum:,file:,output:,help,all,bzip2,xz,gzip,lzma,lzop,compress -n 'compression_test.sh' -- "$@"`
+OPTS=`getopt -o n:x:f:o:h --long minimum:,maximum:,file:,output:,help,all,bzip2,xz,gzip,lzma,lzip,lzop,compress -n 'compression_test.sh' -- "$@"`
 eval set -- "${OPTS}"
 
 while true; do
@@ -131,24 +131,21 @@ else
   time_opts="--format=%e --output=${outfile} --append"
 fi
 
-# compression testing function 
-# args: compression bin, compression level, other compression flags, decompression bin, decompression flags
+# compression/decompression testing function 
+# args: 1- compression bin, 2- compression level, 3- other compression flags, 4- decompression bin, 5- decompression flags,
+# 6- testfile, 7- outfile
 test_routine() {
-  echo "Testing ${1} at compression level ${2}:" | tee ${outfile}
-  time ${time_opts} ${1} ${3} -${2} ${tmp}/${file} | tee ${outfile}
-  du ${tmp}/${file} | tee ${outfile}
-  echo "Testing ${4} at compression level ${2}:" | tee ${outfile}
-  time ${time_opts} ${4} ${5} ${tmp}/${file} | tee ${outfile}
+  echo "Testing ${1} at compression level ${2}:" | tee ${7}
+  time ${time_opts} ${1} ${3} -${2} ${6} | tee ${7}
+  du ${6} | tee ${7}
+  echo "Testing ${4} at compression level ${2}:" | tee ${7}
+  time ${time_opts} ${4} ${5} ${6} | tee ${7}
 }
 
 # do the tests
 if [[ ${zip} == 'on' ]]; then
   for ((i=${min};i<=${max};i++)); do
-    echo "Testing zip at compression level ${i}:" | tee ${outfile}
-    time ${time_opts} zip --recurse-paths --quiet -${i} ${tmp}/${file} | tee ${outfile}
-    du ${tmp}/${file} | tee ${outfile}
-    echo "Testing unzip at compression level ${i}:" | tee ${outfile}
-    time ${time_opts} unzip --quiet ${tmp}/${file} | tee ${outfile}
+    test_routine zip ${i} '--recurse-paths --quiet' unzip '--quiet' "${tmp}/${file}" "${outfile}"
   done
 fi
 
@@ -168,17 +165,12 @@ for i in "${!algs[@]}"; do
     # for j in $(seq ${min} ${max}); do
     for ((j=${min};j<=${max};j++)); do
       case "${i}" in
-        bzip2)
-          echo "Testing ${i} at compression level ${j}:" | tee ${outfile}
-          time ${time_opts} ${i} --quiet -${j} ${tmp}/${file}.tar | tee ${outfile}
-          du ${tmp}/${file}.tar.bz2 | tee ${outfile}
-          echo "Testing bunzip2 at compression level ${j}:" | tee ${outfile}
-          time ${time_opts} bunzip2 --quiet ${tmp}/${file}.tar.bz2 | tee ${outfile};;
-        xz) time ${time_opts} xz --quiet -${j} ${tmp}/${file}.tar ;;
-        gzip) time ${time_opts} gzip --quiet -${j} ${tmp}/${file}.tar ;;
-        lzma) time ${time_opts} xz --format=lzma --quiet -${j} ${tmp}/${file}.tar ;;
-        lzip) time ${time_opts} lzip --quiet -${j} ${tmp}/${file}.tar ;;
-        lzop) time ${time_opts} lzop --quiet -${j} ${tmp}/${file}.tar ;;
+        bzip2) test_routine bzip2 ${j} '--quiet' bzip2 '--decompress --quiet' "${tmp}/${file}.tar" "${outfile}" ;;
+        xz) test_routine xz ${j} '--compress --quiet' xz '--decompress --quiet' "${tmp}/${file}.tar" "${outfile}" ;;
+        gzip) test_routine gzip ${j} '--quiet' gzip '--decompress --quiet' "${tmp}/${file}.tar" "${outfile}" ;;
+        lzma) test_routine xz ${j} '--compress --format=lzma --quiet' xz '--decompress --format=lzma --quiet' "${tmp}/${file}.tar" "${outfile}" ;;
+        lzip) test_routine lzip ${j} '--quiet' lzip '--decompress --quiet' "${tmp}/${file}.tar" "${outfile}" ;;
+        lzop) test_routine lzop ${j} '--quiet' lzop '--decompress --quiet' "${tmp}/${file}.tar" "${outfile}" ;;
       esac
     done
   fi
