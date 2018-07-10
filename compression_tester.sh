@@ -11,8 +11,7 @@ set -o errexit
 set -o pipefail
 set -o nounset
 
-t=$(which time)
-alias time="${t}"
+timer=$(which time)
 
 usage() {
   echo "Usage: $0 [OPTION...] FILE..."
@@ -144,10 +143,10 @@ fi
 # 6- testfile, 7- outfile
 test_routine() {
   echo "Testing ${1} at compression level ${2}:" | tee ${7}
-  time ${time_opts} ${1} ${3} -${2} ${6} | tee ${7}
+  ${timer} ${time_opts} ${1} ${3} ${2} ${6} | tee ${7}
   du ${6} | tee ${7}
   echo "Testing ${4} at compression level ${2}:" | tee ${7}
-  time ${time_opts} ${4} ${5} ${6} | tee ${7}
+  ${timer} ${time_opts} ${4} ${5} ${6} | tee ${7}
 }
 
 # do the tests
@@ -168,17 +167,17 @@ done
 for i in "${!algs[@]}"; do
   if [[ ${algs[$i]} == 'on' ]]; then
     if [[ ${i} == 'compress' ]]; then
-      time ${time_opts} compress --quiet ${tmp}/${file}.tar
+      test_routine compress '' '-f' uncompress '-f' "${tmp}/${file}.tar" "${outfile}"
     fi
     # for j in $(seq ${min} ${max}); do
     for ((j=${min};j<=${max};j++)); do
       case "${i}" in
-        bzip2) test_routine bzip2 ${j} '--quiet' bzip2 '--decompress --quiet' "${tmp}/${file}.tar" "${outfile}" ;;
-        xz) test_routine xz ${j} '--compress --quiet' xz '--decompress --quiet' "${tmp}/${file}.tar" "${outfile}" ;;
-        gzip) test_routine gzip ${j} '--quiet' gzip '--decompress --quiet' "${tmp}/${file}.tar" "${outfile}" ;;
-        lzma) test_routine xz ${j} '--compress --format=lzma --quiet' xz '--decompress --format=lzma --quiet' "${tmp}/${file}.tar" "${outfile}" ;;
-        lzip) test_routine lzip ${j} '--quiet' lzip '--decompress --quiet' "${tmp}/${file}.tar" "${outfile}" ;;
-        lzop) test_routine lzop ${j} '--quiet' lzop '--decompress --quiet' "${tmp}/${file}.tar" "${outfile}" ;;
+        bzip2) test_routine bzip2 "-${j}" '--quiet' bzip2 '--decompress --quiet' "${tmp}/${file}.tar" "${outfile}" ;;
+        xz) test_routine xz "-${j}" '--compress --quiet' xz '--decompress --quiet' "${tmp}/${file}.tar" "${outfile}" ;;
+        gzip) test_routine gzip "-${j}" '--quiet' gzip '--decompress --quiet' "${tmp}/${file}.tar" "${outfile}" ;;
+        lzma) test_routine xz "-${j}" '--compress --format=lzma --quiet' xz '--decompress --format=lzma --quiet' "${tmp}/${file}.tar" "${outfile}" ;;
+        lzip) test_routine lzip "-${j}" '--quiet' lzip '--decompress --quiet' "${tmp}/${file}.tar" "${outfile}" ;;
+        lzop) test_routine lzop "-${j}" '--quiet' lzop '--decompress --quiet' "${tmp}/${file}.tar" "${outfile}" ;;
       esac
     done
   fi
