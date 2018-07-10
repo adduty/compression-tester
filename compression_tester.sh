@@ -4,6 +4,7 @@
 # TODO(aduty): add tests to generate decompression data
 # TODO(aduty): add ability to plot results?
 # TODO(aduty): add spinner (to indicate activity)?
+# TODO(aduty): check if outfile exists, ask to overwrite
 
 set -o xtrace
 set -o errexit
@@ -97,9 +98,9 @@ if [[ ! ${ans} =~ ${pat} ]]; then
   exit 1
 fi
 
-exit_check() {
-  if [[ ${?} -ne 0 ]]; then
-    echo "${i} binary not found."
+rc_check() {
+  if [[ ${rc} -ne 0 ]]; then
+    echo "${i} test enabled but binary was not found."
     exit 1
   fi
 }
@@ -107,20 +108,20 @@ exit_check() {
 # make sure binaries for enabled algorithms exist on system and are in path
 # for now, assume decompression binaries installed if corresponding compression bins exist
 bin_check() {
-  for i in "${!args[@]}"; do
+  for i in "${!algs[@]}"; do
     if [[ ${algs[$i]} == 'on' ]]; then
       if [[ ${i} != 'lzma' ]]; then
-        which ${i} &> /dev/null
-        exit_check
+        which ${i} &> /dev/null && rc=$? || rc=$?
+        rc_check
       elif [[ ${i} == 'lzma' ]]; then
-        which xz &> /dev/null
-        exit_check
+        which xz &> /dev/null && rc=$? || rc=$?
+        rc_check
       fi
     fi
   done
   if [[ ${zip} == 'on' ]]; then
-    which zip &> /dev/null
-    exit_check
+    which zip &> /dev/null && rc=$? || rc=$?
+    rc_check
   fi
 }
 
