@@ -80,6 +80,15 @@ while true; do
   esac
 done
 
+# make sure a target file has been specified and that it exists
+if [[ -z ${file} ]]; then
+  echo 'You must set a target file using -f or --file.'
+  exit 1
+elif [[ ! -e ${file} ]]; then
+  echo "Target file '${file}' does not exist."
+  exit 1
+fi
+
 # make sure conditions are appropriate for testing
 echo 'TO GET VALID RESULTS, IT IS VERY IMPORTANT THAT YOU ARE NOT DOING ANYTHING ELSE CPU OR MEMORY INTENSIVE. Proceed (Y/N)?'
 read ans
@@ -116,8 +125,6 @@ bin_check() {
 }
 
 bin_check
-
-[[ -z ${file} ]] && echo 'You must set a target file using -f or --file.'; exit 1
 
 tmp=$(mktemp --directory /tmp/comp_testXXX)
 
