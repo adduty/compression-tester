@@ -6,6 +6,9 @@
 # TODO(aduty): add spinner (to indicate activity)?
 # TODO(aduty): check if outfile exists, ask to overwrite
 # TODO(aduty): deal with algs that support -0 compression level
+# TODO(aduty): change status for compress alg since it doesn't have compression levels
+# TODO(aduty): add option to allow for multiple iterations (for taking an average- outside of script)?
+# TODO(aduty): add pigz, lbzip2, pbzip2, pxz support
 
 set -o xtrace
 set -o errexit
@@ -129,7 +132,7 @@ bin_check() {
 
 bin_check
 
-tmp=$(mktemp --directory /tmp/comp_testXXX)
+tmp=$(mktemp --directory /tmp/comp_test_XXX)
 
 cp --recursive ${file} ${tmp}
 
@@ -147,7 +150,7 @@ fi
 test_routine() {
   echo "Testing ${1} at compression level ${2/-/}:" | tee --append ${7}
   ${timer} ${time_opts} ${1} ${3} ${2} ${6} | tee --append ${7}
-  du --bytes "${6}.${exts[${1}]}" | tee --append ${7}
+  stat --printf=%s, "${6}.${exts[${1}]}" | tee --append ${7}
   echo "Testing ${4} (decompress) at compression level ${2/-/}:" | tee --append ${7}
   ${timer} ${time_opts} ${4} ${5} "${6}.${exts[${1}]}" | tee --append ${7}
 }
