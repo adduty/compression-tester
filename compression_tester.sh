@@ -1,10 +1,7 @@
 #!/usr/bin/env bash
 
-# TODO(aduty): check if binaries exist for algs that are turned on
-# TODO(aduty): add tests to generate decompression data
 # TODO(aduty): add ability to plot results?
 # TODO(aduty): add spinner (to indicate activity)?
-# TODO(aduty): check if outfile exists, ask to overwrite
 # TODO(aduty): deal with algs that support -0 compression level
 # TODO(aduty): change status for compress alg since it doesn't have compression levels
 # TODO(aduty): add option to allow for multiple iterations (for taking an average- outside of script)?
@@ -95,10 +92,19 @@ elif [[ ! -e ${file} ]]; then
   exit 1
 fi
 
+pat=" *[yY] *$"
+
+if [[ -e ${outfile} ]]; then
+  echo "File named '${outfile}' already exists. Overwrite?"
+  read over
+  if [[ ! ${over} =~ ${pat} ]]; then
+    exit 1
+  fi
+fi
+
 # make sure conditions are appropriate for testing
 echo 'TO GET VALID RESULTS, IT IS VERY IMPORTANT THAT YOU ARE NOT DOING ANYTHING ELSE CPU OR MEMORY INTENSIVE. Proceed (Y/N)?'
 read ans
-pat=" *[yY] *$"
 if [[ ! ${ans} =~ ${pat} ]]; then
   exit 1
 fi
