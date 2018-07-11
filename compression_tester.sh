@@ -81,9 +81,9 @@ exts=(
 )
 zip='off'
 
-OPTS=`getopt -o n:x:f:o:ht: --long \
+OPTS=$(getopt -o n:x:f:o:ht: --long \
   minimum:,maximum:,file:,output:,help,threads:,all,bzip2,xz,gzip,lzma,lzip,lzop,compress,zip,lbzip2,pbzip2,pigz,pxz \
-  -n 'compression_test.sh' -- "$@"`
+  -n 'compression_test.sh' -- "$@")
 eval set -- "${OPTS}"
 
 while true; do
@@ -189,7 +189,7 @@ bin_check
 
 tmp=$(mktemp --directory /tmp/comp_test_XXX)
 
-cp --recursive ${file} ${tmp}
+cp --recursive "${file}" "${tmp}"
 
 # sha=$(sha256sum ${tmp}/${file})
 
@@ -203,16 +203,16 @@ fi
 # args: 1- compression bin, 2- compression level, 3- other compression flags, 4- decompression bin, 5- decompression flags,
 # 6- testfile, 7- outfile
 test_routine() {
-  echo "Testing ${1} at compression level ${2/-/}:" | tee --append ${7}
-  ${timer} ${time_opts} ${1} ${3} ${2} ${6} | tee --append ${7}
-  stat --printf=%s, "${6}.${exts[${1}]}" | tee --append ${7}
-  echo "Testing ${4} (decompress) at compression level ${2/-/}:" | tee --append ${7}
-  ${timer} ${time_opts} ${4} ${5} "${6}.${exts[${1}]}" | tee --append ${7}
+  echo "Testing ${1} at compression level ${2/-/}:" | tee --append "${7}"
+  ${timer} "${time_opts}" "${1}" "${3}" "${2}" "${6}" | tee --append "${7}"
+  stat --printf=%s, "${6}.${exts[${1}]}" | tee --append "${7}"
+  echo "Testing ${4} (decompress) at compression level ${2/-/}:" | tee --append "${7}"
+  "${timer}" "${time_opts}" "${4}" "${5}" "${6}.${exts[${1}]}" | tee --append "${7}"
 }
 
 # do the tests
 if [[ ${zip} == 'on' ]]; then
-  for ((i=${min};i<=${max};i++)); do
+  for ((i=min;i<=max;i++)); do
     test_routine zip "-${i}" '--recurse-paths --quiet' unzip '--quiet' "${tmp}/${file}" "${outfile}"
   done
 fi
@@ -220,7 +220,7 @@ fi
 # create tarball if testing any other algorithms
 for i in "${!algs[@]}"; do
   if [[ ${algs[$i]} == 'on' ]]; then
-    tar --create --file=${tmp}/${file}.tar ${file}
+    tar --create --file="${tmp}/${file}.tar" "${file}"
     break
   fi
 done
@@ -231,7 +231,7 @@ for i in "${!algs[@]}"; do
       test_routine compress '' '-f' uncompress '-f' "${tmp}/${file}.tar" "${outfile}"
     fi
     # for j in $(seq ${min} ${max}); do
-    for ((j=${min};j<=${max};j++)); do
+    for ((j=min;j<=max;j++)); do
       case "${i}" in
         bzip2) test_routine bzip2 "-${j}" '--quiet' bzip2 '--decompress --quiet' "${tmp}/${file}.tar" "${outfile}" ;;
         xz) test_routine xz "-${j}" '--compress --quiet' xz '--decompress --quiet' "${tmp}/${file}.tar" "${outfile}" ;;
@@ -249,4 +249,4 @@ for i in "${!algs[@]}"; do
 done
 
 # clean up
-rm --recursive --force ${tmp}
+rm --recursive --force "${tmp}"
