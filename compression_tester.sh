@@ -1,14 +1,12 @@
 #!/usr/bin/env bash
 
-# TODO(aduty): check if binaries exist for algs that are turned on
-# TODO(aduty): add tests to generate decompression data
 # TODO(aduty): add ability to plot results?
 # TODO(aduty): add spinner (to indicate activity)?
-# TODO(aduty): check if outfile exists, ask to overwrite
 # TODO(aduty): deal with algs that support -0 compression level
 # TODO(aduty): change status for compress alg since it doesn't have compression levels
 # TODO(aduty): add option to allow for multiple iterations (for taking an average- outside of script)?
 # TODO(aduty): add pigz, lbzip2, pbzip2, pxz support
+# TODO(aduty): add checks to make sure version of things e.g. bash is new enough
 
 set -o xtrace
 set -o errexit
