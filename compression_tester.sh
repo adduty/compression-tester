@@ -103,6 +103,7 @@ while true; do
     -f|--file) file=${2%/}; shift 2 ;;
     -o|--output) outfile=${2}; shift 2 ;;
     -h|--help) usage; shift ;;
+    -t|--threads) threads=${2}; shift 2 ;;
     --all) for i in "${!algs[@]}"; do  algs[$i]='on'; echo ${algs[$i]}; done; zip='on'; shift ;;
     --bzip2) algs['bzip2']='on'; shift ;;
     --xz) algs['xz']='on'; shift ;;
@@ -112,6 +113,10 @@ while true; do
     --lzop) algs['lzop']='on'; shift ;;
     --compress) algs['compress']='on'; shift ;;
     --zip) zip='on'; shift ;;
+    --lbzip2) algs['lbzip2']='on'; shift ;;
+    --pbzip2) algs['pbzip2']='on'; shift ;;
+    --pigz) algs['pigz']='on'; shift ;;
+    --pxz) algs['pxz']='on'; shift ;;
     --) shift; break ;;
     *) usage; break ;;
   esac
