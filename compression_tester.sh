@@ -239,10 +239,14 @@ for i in "${!algs[@]}"; do
         lzma) test_routine xz "-${j}" '--compress --format=lzma --quiet' xz '--decompress --format=lzma --quiet' "${tmp}/${file}.tar" "${outfile}" ;;
         lzip) test_routine lzip "-${j}" '--quiet' lzip '--decompress --quiet' "${tmp}/${file}.tar" "${outfile}" ;;
         lzop) test_routine lzop "-${j}" '--delete --quiet' lzop '--decompress --delete --quiet' "${tmp}/${file}.tar" "${outfile}" ;;
+        lbzip2) test_routine lbzip2 "-${j}" "-n ${threads} --quiet" lbzip2 "-n ${threads} --decompress --quiet" "${tmp}/${file}.tar" "${outfile}" ;;
+        pbzip2) test_routine pbzip2 "-${j}" "-p${threads} --quiet" pbzip2 "-p${threads} --decompress --quiet" "${tmp}/${file}.tar" "${outfile}" ;;
+        pigz) test_routine pigz "-${j}" "--processes ${threads} --quiet" pigz "--processes ${threads} --decompress --quiet" "${tmp}/${file}.tar" "${outfile}" ;;
+        pxz) test_routine pxz "-${j}" "--threads ${threads} --quiet" pxz "--threads ${threads} --decompress --quiet" "${tmp}/${file}.tar" "${outfile}" ;;
       esac
     done
   fi
 done
 
 # clean up
-rm -rf ${tmp}
+rm --recursive --force ${tmp}
