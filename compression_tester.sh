@@ -18,11 +18,12 @@ timer=$(which time)
 usage() {
   echo "Usage: $0 [OPTION...] FILE..."
   echo 'Options:'
-  echo '  -f,  --file=FILE    perform compression tests on FILE'
-  echo '  -h,  --help         display usage info'
-  echo '  -n,  --minimum=N    minimun compression level (1-9)'
-  echo '  -o, --output=FILE   output results to FILE instead of STDOUT'
-  echo '  -x,  --maximum=N    maximum compression level (1-9)'
+  echo '  -f,   --file=FILE     perform compression tests on FILE'
+  echo '  -h,   --help          display usage info'
+  echo '  -n,   --minimum=N     minimun compression level (1-9)'
+  echo '  -o,   --output=FILE   output results to FILE instead of STDOUT'
+  echo '  -x,   --maximum=N     maximum compression level (1-9)'
+  echo '  -t,   --threads       number of threads to use for multi-threaded binaries (default 8)'
   echo
   echo 'Algorithms:'
   echo
@@ -34,6 +35,10 @@ usage() {
   echo '      --lzop          enable lzop testing'
   echo '      --compress      enable compress testing'
   echo '      --zip           enable zip testing'
+  echo '      --lbzip2        enable lbzip2 (multi-threaded bzip2) support'
+  echo '      --pbzip2        enable pbzip2 (parallel implementation of bzip2) support'
+  echo '      --pigz          enable pigz (parallel implementation of gzip) support'
+  echo '      --pxz           enable pxz (parallel LZMA compressor using XZ) support'
 
   echo 'By default, min=1 and max=9. You can change one or both.'
   exit 1
