@@ -131,11 +131,30 @@ elif [[ ! -e ${file} ]]; then
   exit 1
 fi
 
+pat="^[yY]$"
+
+# overwrite if outfile exists?
+if [[ -e ${outfile} ]]; then
+  echo "File named '${outfile}' already exists. Overwrite?"
+  read over
+  if [[ ! ${over// /} =~ ${pat} ]]; then
+    exit 1
+  fi
+fi
+
+# make sure threads is positive integer
+if [[ ! -z ${threads} ]]; then
+  pat_threads="^[0-9]+$"
+  if [[ ! ${threads// /} =~ ${pat_threads// /} ]] || [[ ${threads// /} == '0' ]]; then
+    echo "Number of threads specified ('${threads}') is not a positive integer."
+    exit 1
+  fi
+fi
+
 # make sure conditions are appropriate for testing
 echo 'TO GET VALID RESULTS, IT IS VERY IMPORTANT THAT YOU ARE NOT DOING ANYTHING ELSE CPU OR MEMORY INTENSIVE. Proceed (Y/N)?'
 read ans
-pat=" *[yY] *$"
-if [[ ! ${ans} =~ ${pat} ]]; then
+if [[ ! ${ans// /} =~ ${pat} ]]; then
   exit 1
 fi
 
