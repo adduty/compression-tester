@@ -5,6 +5,7 @@
 # TODO(aduty): add ability to plot results?
 # TODO(aduty): add spinner (to indicate activity)?
 # TODO(aduty): check if outfile exists, ask to overwrite
+# TODO(aduty): deal with algs that support -0 compression level
 
 set -o xtrace
 set -o errexit
@@ -43,10 +44,12 @@ file=''
 outfile=''
 
 declare -A algs
+declare -A exts
 algs=( ['bzip2']='off' ['xz']='off' ['gzip']='off' ['lzma']='off' ['lzip']='off' ['lzop']='off' ['compress']='off' )
+exts=( ['bzip2']='bz2' ['xz']='xz' ['gzip']='gz' ['lzma']='lzma' ['lzip']='lz' ['lzop']='lzo' ['compress']='Z' )
 zip='off'
 
-OPTS=`getopt -o n:x:f:o:h --long minimum:,maximum:,file:,output:,help,all,bzip2,xz,gzip,lzma,lzip,lzop,compress -n 'compression_test.sh' -- "$@"`
+OPTS=`getopt -o n:x:f:o:h --long minimum:,maximum:,file:,output:,help,all,bzip2,xz,gzip,lzma,lzip,lzop,compress,zip -n 'compression_test.sh' -- "$@"`
 eval set -- "${OPTS}"
 
 while true; do
@@ -63,7 +66,7 @@ while true; do
         *) max=${2}; shift 2 ;;
       esac
       ;;
-    -f|--file) file=${2}; shift 2 ;;
+    -f|--file) file=${2%/}; shift 2 ;;
     -o|--output) outfile=${2}; shift 2 ;;
     -h|--help) usage; shift ;;
     --all) for i in "${!algs[@]}"; do  algs[$i]='on'; echo ${algs[$i]}; done; zip='on'; shift ;;
@@ -130,7 +133,7 @@ tmp=$(mktemp --directory /tmp/comp_testXXX)
 
 cp --recursive ${file} ${tmp}
 
-sha=$(sha256sum ${tmp}/${file})
+# sha=$(sha256sum ${tmp}/${file})
 
 if [[ -z "${outfile}" ]]; then
   time_opts='--format=%e'
@@ -142,17 +145,17 @@ fi
 # args: 1- compression bin, 2- compression level, 3- other compression flags, 4- decompression bin, 5- decompression flags,
 # 6- testfile, 7- outfile
 test_routine() {
-  echo "Testing ${1} at compression level ${2}:" | tee ${7}
-  ${timer} ${time_opts} ${1} ${3} ${2} ${6} | tee ${7}
-  du ${6} | tee ${7}
-  echo "Testing ${4} at compression level ${2}:" | tee ${7}
-  ${timer} ${time_opts} ${4} ${5} ${6} | tee ${7}
+  echo "Testing ${1} at compression level ${2/-/}:" | tee --append ${7}
+  ${timer} ${time_opts} ${1} ${3} ${2} ${6} | tee --append ${7}
+  du --bytes "${6}.${exts[${1}]}" | tee --append ${7}
+  echo "Testing ${4} (decompress) at compression level ${2/-/}:" | tee --append ${7}
+  ${timer} ${time_opts} ${4} ${5} "${6}.${exts[${1}]}" | tee --append ${7}
 }
 
 # do the tests
 if [[ ${zip} == 'on' ]]; then
   for ((i=${min};i<=${max};i++)); do
-    test_routine zip ${i} '--recurse-paths --quiet' unzip '--quiet' "${tmp}/${file}" "${outfile}"
+    test_routine zip "-${i}" '--recurse-paths --quiet' unzip '--quiet' "${tmp}/${file}" "${outfile}"
   done
 fi
 
@@ -177,7 +180,7 @@ for i in "${!algs[@]}"; do
         gzip) test_routine gzip "-${j}" '--quiet' gzip '--decompress --quiet' "${tmp}/${file}.tar" "${outfile}" ;;
         lzma) test_routine xz "-${j}" '--compress --format=lzma --quiet' xz '--decompress --format=lzma --quiet' "${tmp}/${file}.tar" "${outfile}" ;;
         lzip) test_routine lzip "-${j}" '--quiet' lzip '--decompress --quiet' "${tmp}/${file}.tar" "${outfile}" ;;
-        lzop) test_routine lzop "-${j}" '--quiet' lzop '--decompress --quiet' "${tmp}/${file}.tar" "${outfile}" ;;
+        lzop) test_routine lzop "-${j}" '--delete --quiet' lzop '--decompress --delete --quiet' "${tmp}/${file}.tar" "${outfile}" ;;
       esac
     done
   fi
