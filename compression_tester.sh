@@ -48,14 +48,42 @@ min='1'
 max='9'
 file=''
 outfile=''
+threads='8'
 
 declare -A algs
 declare -A exts
-algs=( ['bzip2']='off' ['xz']='off' ['gzip']='off' ['lzma']='off' ['lzip']='off' ['lzop']='off' ['compress']='off' )
-exts=( ['bzip2']='bz2' ['xz']='xz' ['gzip']='gz' ['lzma']='lzma' ['lzip']='lz' ['lzop']='lzo' ['compress']='Z' )
+algs=(
+  ['bzip2']='off'
+  ['xz']='off'
+  ['gzip']='off'
+  ['lzma']='off'
+  ['lzip']='off'
+  ['lzop']='off'
+  ['compress']='off'
+  ['lbzip2']='off'
+  ['pbzip2']='off'
+  ['pigz']='off'
+  ['pxz']='off'
+)
+
+exts=(
+  ['bzip2']='bz2'
+  ['xz']='xz'
+  ['gzip']='gz'
+  ['lzma']='lzma'
+  ['lzip']='lz'
+  ['lzop']='lzo'
+  ['compress']='Z'
+  ['lbzip2']='bz2'
+  ['pbzip2']='bz2'
+  ['pigz']='gz'
+  ['pxz']='xz'
+)
 zip='off'
 
-OPTS=`getopt -o n:x:f:o:h --long minimum:,maximum:,file:,output:,help,all,bzip2,xz,gzip,lzma,lzip,lzop,compress,zip -n 'compression_test.sh' -- "$@"`
+OPTS=`getopt -o n:x:f:o:ht: --long \
+  minimum:,maximum:,file:,output:,help,threads:,all,bzip2,xz,gzip,lzma,lzip,lzop,compress,zip,lbzip2,pbzip2,pigz,pxz \
+  -n 'compression_test.sh' -- "$@"`
 eval set -- "${OPTS}"
 
 while true; do
