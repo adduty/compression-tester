@@ -44,6 +44,46 @@ usage() {
   exit 1
 }
 
+rc_check() {
+  if [[ ${rc} -ne 0 ]]; then
+    echo "${i} test enabled but binary was not found."
+    exit 1
+  fi
+}
+
+# make sure binaries for enabled algorithms exist on system and are in path
+# for now, assume decompression binaries installed if corresponding compression bins exist
+bin_check() {
+  for i in "${!algs[@]}"; do
+    if [[ ${algs[$i]} == 'on' ]]; then
+      if [[ ${i} != 'lzma' ]]; then
+        which "${i}" &> /dev/null && rc=$? || rc=$?
+        rc_check
+      elif [[ ${i} == 'lzma' ]]; then
+        which xz &> /dev/null && rc=$? || rc=$?
+        rc_check
+      fi
+    fi
+  done
+  if [[ ${zip} == 'on' ]]; then
+    which zip &> /dev/null && rc=$? || rc=$?
+    rc_check
+  fi
+}
+
+# compression/decompression testing function 
+# args: 1- compression bin, 2- compression level, 3- other compression flags, 4- decompression bin, 5- decompression flags,
+# 6- testfile, 7- outfile
+# csv format: alg,comp_level,comp_time,comp_size,decomp_time
+test_routine() {
+  printf '%s,%s,' "${1}" "${2/-/}" >> "${7}"
+  t_1=$("${timer}" "${time_opts}" "${1}" "${3}" "${2}" "${6}" 2>&1)
+  printf '%s,' "${t_1}" >> "${7}"
+  stat --printf='%s,' "${6}.${exts[${1}]}" >> "${7}"
+  t2=$("${timer}" "${time_opts}" "${4}" ${5} "${6}.${exts[${1}]}" 2>&1)
+  printf '%s\n' "${t2}" >> "${7}"
+}
+
 min='6'
 max='6'
 file=''
@@ -158,33 +198,6 @@ if [[ ! ${ans// /} =~ ${pat} ]]; then
   exit 1
 fi
 
-rc_check() {
-  if [[ ${rc} -ne 0 ]]; then
-    echo "${i} test enabled but binary was not found."
-    exit 1
-  fi
-}
-
-# make sure binaries for enabled algorithms exist on system and are in path
-# for now, assume decompression binaries installed if corresponding compression bins exist
-bin_check() {
-  for i in "${!algs[@]}"; do
-    if [[ ${algs[$i]} == 'on' ]]; then
-      if [[ ${i} != 'lzma' ]]; then
-        which ${i} &> /dev/null && rc=$? || rc=$?
-        rc_check
-      elif [[ ${i} == 'lzma' ]]; then
-        which xz &> /dev/null && rc=$? || rc=$?
-        rc_check
-      fi
-    fi
-  done
-  if [[ ${zip} == 'on' ]]; then
-    which zip &> /dev/null && rc=$? || rc=$?
-    rc_check
-  fi
-}
-
 bin_check
 
 tmp=$(mktemp --directory /tmp/comp_test_XXX)
@@ -194,19 +207,6 @@ cp --recursive "${file}" "${tmp}"
 # sha=$(sha256sum ${tmp}/${file})
 
 time_opts='--format=%e'
-
-# compression/decompression testing function 
-# args: 1- compression bin, 2- compression level, 3- other compression flags, 4- decompression bin, 5- decompression flags,
-# 6- testfile, 7- outfile
-# csv format: alg,comp_level,comp_time,comp_size,decomp_time
-test_routine() {
-  printf '%s,%s,' "${1}" "${2/-/}" >> "${7}"
-  t_1=$("${timer}" "${time_opts}" "${1}" "${3}" "${2}" "${6}" 2>&1)
-  printf '%s,' "${t_1}" >> "${7}"
-  stat --printf='%s,' "${6}.${exts[${1}]}" >> "${7}"
-  t2=$("${timer}" "${time_opts}" "${4}" ${5} "${6}.${exts[${1}]}" 2>&1)
-  printf '%s\n' "${t2}" >> "${7}"
-}
 
 # do the tests
 if [[ ${zip} == 'on' ]]; then
