@@ -40,12 +40,12 @@ usage() {
   echo '      --pigz          enable pigz (parallel implementation of gzip) support'
   echo '      --pxz           enable pxz (parallel LZMA compressor using XZ) support'
 
-  echo 'By default, min=1 and max=9. You can change one or both.'
+  echo 'By default, min=6 and max=6. You can change one or both.'
   exit 1
 }
 
-min='1'
-max='9'
+min='6'
+max='6'
 file=''
 outfile=''
 threads='8'
