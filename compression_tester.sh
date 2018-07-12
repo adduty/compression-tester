@@ -193,21 +193,19 @@ cp --recursive "${file}" "${tmp}"
 
 # sha=$(sha256sum ${tmp}/${file})
 
-if [[ -z "${outfile}" ]]; then
-  time_opts='--format=%e'
-else
-  time_opts="--format=%e --output=${outfile} --append"
-fi
+time_opts='--format=%e'
 
 # compression/decompression testing function 
 # args: 1- compression bin, 2- compression level, 3- other compression flags, 4- decompression bin, 5- decompression flags,
 # 6- testfile, 7- outfile
+# csv format: alg,comp_level,comp_time,comp_size,decomp_time
 test_routine() {
-  echo "Testing ${1} at compression level ${2/-/}:" | tee --append "${7}"
-  ${timer} "${time_opts}" "${1}" "${3}" "${2}" "${6}" | tee --append "${7}"
-  stat --printf=%s, "${6}.${exts[${1}]}" | tee --append "${7}"
-  echo "Testing ${4} (decompress) at compression level ${2/-/}:" | tee --append "${7}"
-  "${timer}" "${time_opts}" "${4}" "${5}" "${6}.${exts[${1}]}" | tee --append "${7}"
+  printf '%s,%s,' "${1}" "${2/-/}" >> "${7}"
+  t_1=$("${timer}" "${time_opts}" "${1}" "${3}" "${2}" "${6}" 2>&1)
+  printf '%s,' "${t_1}" >> "${7}"
+  stat --printf='%s,' "${6}.${exts[${1}]}" >> "${7}"
+  t2=$("${timer}" "${time_opts}" "${4}" ${5} "${6}.${exts[${1}]}" 2>&1)
+  printf '%s\n' "${t2}" >> "${7}"
 }
 
 # do the tests
