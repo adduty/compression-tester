@@ -21,7 +21,7 @@ usage() {
   echo '  -f,   --file=FILE     perform compression tests on FILE'
   echo '  -h,   --help          display usage info'
   echo '  -n,   --minimum=N     minimun compression level (1-9)'
-  echo '  -o,   --output=FILE   output results to FILE instead of STDOUT'
+  echo '  -o,   --output=FILE   output results to FILE (comp-test-DATE.csv if unspecified)'
   echo '  -x,   --maximum=N     maximum compression level (1-9)'
   echo '  -t,   --threads       number of threads to use for multi-threaded binaries (default 8)'
   echo
@@ -87,7 +87,8 @@ test_routine() {
 min='6'
 max='6'
 file=''
-outfile=''
+date=$(date +%T-%d.%b.%Y)
+outfile="comp-test-${date}.csv"
 threads='8'
 
 declare -A algs
@@ -119,6 +120,7 @@ exts=(
   ['pigz']='gz'
   ['pxz']='xz'
 )
+
 zip='off'
 
 OPTS=$(getopt -o n:x:f:o:ht: --long \
