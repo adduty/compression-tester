@@ -74,14 +74,19 @@ bin_check() {
 # compression/decompression testing function 
 # args: 1- compression bin, 2- compression level, 3- other compression flags, 4- decompression bin, 5- decompression flags,
 # 6- testfile, 7- outfile
-# csv format: alg,comp_level,comp_time,comp_size,decomp_time
+# csv format: alg,comp_level,comp_time,comp_size,decomp_time,threads
 test_routine() {
   printf '%s,%s,' "${1}" "${2/-/}" >> "${7}"
   t_1=$("${timer}" "${time_opts}" "${1}" "${3}" "${2}" "${6}" 2>&1)
   printf '%s,' "${t_1}" >> "${7}"
   stat --printf='%s,' "${6}.${exts[${1}]}" >> "${7}"
   t2=$("${timer}" "${time_opts}" "${4}" ${5} "${6}.${exts[${1}]}" 2>&1)
-  printf '%s\n' "${t2}" >> "${7}"
+  printf '%s,' "${t2}" >> "${7}"
+  if [[ "${1}" == 'lbzip2' ]] || [[ "${1}" == 'pbzip2' ]] || [[ "${1}" == 'pigz' ]] || [[ "${1}" == 'pxz' ]]; then
+    printf '%s\n' "${threads}" >> "${7}"
+  else
+    printf '0\n' >> "${7}"
+  fi
 }
 
 min='6'
@@ -89,7 +94,6 @@ max='6'
 file=''
 date=$(date +%T-%d.%b.%Y)
 outfile="comp-test-${date}.csv"
-threads='8'
 
 declare -A algs
 declare -A exts
@@ -105,6 +109,13 @@ algs=(
   ['pbzip2']='off'
   ['pigz']='off'
   ['pxz']='off'
+)
+
+mt_algs=(
+  'lbzip2'
+  'pbzip2'
+  'pigz'
+  'pxz'
 )
 
 exts=(
@@ -184,6 +195,18 @@ if [[ -e ${outfile} ]]; then
   fi
 fi
 
+# make sure threads specified if using any multi-threaded algs
+for i in "${mt_algs[@]}"; do
+  if [[ ${algs[$i]} == 'on' ]]; then
+    if [[ -z ${threads} ]]; then
+      echo "You must specify number of threads if usinig multi-threaded implementation (${i})."
+      exit 1
+    fi
+    break
+  fi
+done
+
+
 # make sure threads is positive integer
 if [[ ! -z ${threads} ]]; then
   pat_threads="^[0-9]+$"
@@ -209,6 +232,9 @@ cp --recursive "${file}" "${tmp}"
 # sha=$(sha256sum ${tmp}/${file})
 
 time_opts='--format=%e'
+
+# initialize outfile with csv header
+printf 'binary,compression level,compression time,compressed size,mpression time,threads\n' >> "${outfile}"
 
 # do the tests
 if [[ ${zip} == 'on' ]]; then
