@@ -8,7 +8,7 @@
 # TODO(aduty): add pigz, lbzip2, pbzip2, pxz support
 # TODO(aduty): add checks to make sure version of things e.g. bash is new enough
 
-# set -o xtrace
+set -o xtrace
 set -o errexit
 set -o pipefail
 set -o nounset
@@ -189,8 +189,6 @@ while true; do
     *) usage; break ;;
   esac
 done
-
-exit
 
 # make sure a target file has been specified and that it exists
 if [[ -z ${file} ]]; then
