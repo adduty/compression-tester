@@ -8,7 +8,7 @@
 # TODO(aduty): add pigz, lbzip2, pbzip2, pxz support
 # TODO(aduty): add checks to make sure version of things e.g. bash is new enough
 
-set -o xtrace
+# set -o xtrace
 set -o errexit
 set -o pipefail
 set -o nounset
@@ -27,18 +27,21 @@ usage() {
   echo
   echo 'Algorithms:'
   echo
-  echo '      --bzip2         enable bzip2 testing'
-  echo '      --xz            enable xz testing'
-  echo '      --gzip          enable gzip testing'
-  echo '      --lzma          enable lzma testing'
-  echo '      --lzip          enable lzip testing'
-  echo '      --lzop          enable lzop testing'
-  echo '      --compress      enable compress testing'
-  echo '      --zip           enable zip testing'
-  echo '      --lbzip2        enable lbzip2 (multi-threaded bzip2) support'
-  echo '      --pbzip2        enable pbzip2 (parallel implementation of bzip2) support'
-  echo '      --pigz          enable pigz (parallel implementation of gzip) support'
-  echo '      --pxz           enable pxz (parallel LZMA compressor using XZ) support'
+  echo '  -a,   --all           enable all tests'
+  echo '  -s,   --single        enable all single-threaded tests'
+  echo '  -m,   --multi         enable all multi-threaded tests'
+  echo '        --bzip2         enable bzip2 testing'
+  echo '        --xz            enable xz testing'
+  echo '        --gzip          enable gzip testing'
+  echo '        --lzma          enable lzma testing'
+  echo '        --lzip          enable lzip testing'
+  echo '        --lzop          enable lzop testing'
+  echo '        --compress      enable compress testing'
+  echo '        --zip           enable zip testing'
+  echo '        --lbzip2        enable lbzip2 (multi-threaded bzip2) support'
+  echo '        --pbzip2        enable pbzip2 (parallel implementation of bzip2) support'
+  echo '        --pigz          enable pigz (parallel implementation of gzip) support'
+  echo '        --pxz           enable pxz (parallel LZMA compressor using XZ) support'
 
   echo 'By default, min=6 and max=6. You can change one or both.'
   exit 1
@@ -111,6 +114,16 @@ algs=(
   ['pxz']='off'
 )
 
+st_algs=(
+  'bzip2'
+  'xz'
+  'gzip'
+  'lzma'
+  'lzip'
+  'lzop'
+  'compress'
+)
+
 mt_algs=(
   'lbzip2'
   'pbzip2'
@@ -134,9 +147,9 @@ exts=(
 
 zip='off'
 
-OPTS=$(getopt -o n:x:f:o:ht: --long \
-  minimum:,maximum:,file:,output:,help,threads:,all,bzip2,xz,gzip,lzma,lzip,lzop,compress,zip,lbzip2,pbzip2,pigz,pxz \
-  -n 'compression_test.sh' -- "$@")
+OPTS=$(getopt --options asmn:x:f:o:ht: --long \
+  minimum:,maximum:,file:,output:,help,threads:,all,single,multi,bzip2,xz,gzip,lzma,lzip,lzop,compress,zip,lbzip2,pbzip2,pigz,pxz \
+  --name 'compression_test.sh' -- "$@")
 eval set -- "${OPTS}"
 
 while true; do
@@ -157,7 +170,9 @@ while true; do
     -o|--output) outfile=${2}; shift 2 ;;
     -h|--help) usage; shift ;;
     -t|--threads) threads=${2}; shift 2 ;;
-    --all) for i in "${!algs[@]}"; do  algs[$i]='on'; echo ${algs[$i]}; done; zip='on'; shift ;;
+    -a|--all) for i in "${!algs[@]}"; do  algs[$i]='on'; done; zip='on'; shift ;;
+    -s|--single) for i in "${st_algs[@]}"; do algs[${i}]='on'; done; zip='on'; shift ;;
+    -m|--multi) for i in "${mt_algs[@]}"; do algs[${i}]='on'; done; shift ;;
     --bzip2) algs['bzip2']='on'; shift ;;
     --xz) algs['xz']='on'; shift ;;
     --gzip) algs['gzip']='on'; shift ;;
@@ -174,6 +189,8 @@ while true; do
     *) usage; break ;;
   esac
 done
+
+exit
 
 # make sure a target file has been specified and that it exists
 if [[ -z ${file} ]]; then
