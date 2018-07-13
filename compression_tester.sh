@@ -80,7 +80,7 @@ bin_check() {
 # csv format: alg,comp_level,comp_time,comp_size,decomp_time,threads
 test_routine() {
   printf '%s,%s,' "${1}" "${2/-/}" >> "${7}"
-  t_1=$("${timer}" "${time_opts}" "${1}" "${3}" "${2}" "${6}" 2>&1)
+  t_1=$("${timer}" "${time_opts}" "${1}" ${3} "${2}" "${6}" 2>&1)
   printf '%s,' "${t_1}" >> "${7}"
   stat --printf='%s,' "${6}.${exts[${1}]}" >> "${7}"
   t2=$("${timer}" "${time_opts}" "${4}" ${5} "${6}.${exts[${1}]}" 2>&1)
@@ -143,6 +143,7 @@ exts=(
   ['pbzip2']='bz2'
   ['pigz']='gz'
   ['pxz']='xz'
+  ['zip']='zip'
 )
 
 zip='off'
@@ -254,7 +255,9 @@ printf 'binary,compression level,compression time,compressed size,mpression time
 # do the tests
 if [[ ${zip} == 'on' ]]; then
   for ((i=min;i<=max;i++)); do
-    test_routine zip "-${i}" '--recurse-paths --quiet' unzip '--quiet' "${tmp}/${file}" "${outfile}"
+    test_routine zip "-${i}" "--recurse-paths --quiet ${tmp}/${file}" unzip '-q' "${tmp}/${file}" "${outfile}"
+    # unzip has no option to delete the zip file
+    rm "${tmp}/${file}.zip"
   done
 fi
 
