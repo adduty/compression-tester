@@ -75,20 +75,25 @@ bin_check() {
 }
 
 # compression/decompression testing function 
-# args: 1- compression bin, 2- compression level, 3- other compression flags, 4- decompression bin, 5- decompression flags,
-# 6- testfile, 7- outfile
+# args: 1- compression bin, 2- other compression flags, 3- decompression bin, 4- decompression flags,
+# 5- testfile, 6- compression level
 # csv format: alg,comp_level,comp_time,comp_size,decomp_time,threads
 test_routine() {
-  printf '%s,%s,' "${1}" "${2/-/}" >> "${7}"
-  t_1=$("${timer}" "${time_opts}" "${1}" ${3} "${2}" "${6}" 2>&1)
-  printf '%s,' "${t_1}" >> "${7}"
-  stat --printf='%s,' "${6}.${exts[${1}]}" >> "${7}"
-  t2=$("${timer}" "${time_opts}" "${4}" ${5} "${6}.${exts[${1}]}" 2>&1)
-  printf '%s,' "${t2}" >> "${7}"
-  if [[ "${1}" == 'lbzip2' ]] || [[ "${1}" == 'pbzip2' ]] || [[ "${1}" == 'pigz' ]] || [[ "${1}" == 'pxz' ]]; then
-    printf '%s\n' "${threads}" >> "${7}"
+  printf '%s,%s,' "${1}" "${6/-/}" >> "${outfile}"
+  # the function seems to pass empty quotes to compress when ${6} is empty and compress chokes
+  if [[ "${1}" == 'compress' ]]; then
+    t_1=$("${timer}" "${time_opts}" "${1}" "${2}" "${5}" 2>&1)
   else
-    printf '0\n' >> "${7}"
+    t_1=$("${timer}" "${time_opts}" "${1}" "${2}" "${6}" "${5}" 2>&1)
+  fi
+  printf '%s,' "${t_1}" >> "${outfile}"
+  stat --printf='%s,' "${5}.${exts[${1}]}" >> "${outfile}"
+  t2=$("${timer}" "${time_opts}" "${3}" ${4} "${5}.${exts[${1}]}" 2>&1)
+  printf '%s,' "${t2}" >> "${outfile}"
+  if [[ "${1}" == 'lbzip2' ]] || [[ "${1}" == 'pbzip2' ]] || [[ "${1}" == 'pigz' ]] || [[ "${1}" == 'pxz' ]]; then
+    printf '%s\n' "${threads}" >> "${outfile}"
+  else
+    printf '0\n' >> "${outfile}"
   fi
 }
 
@@ -272,21 +277,21 @@ done
 for i in "${!algs[@]}"; do
   if [[ ${algs[$i]} == 'on' ]]; then
     if [[ ${i} == 'compress' ]]; then
-      test_routine compress '' '-f' uncompress '-f' "${tmp}/${file}.tar" "${outfile}"
+      test_routine compress "-f" uncompress "-f" "${tmp}/${file}.tar" ''
     fi
     # for j in $(seq ${min} ${max}); do
     for ((j=min;j<=max;j++)); do
       case "${i}" in
-        bzip2) test_routine bzip2 "-${j}" '--quiet' bzip2 '--decompress --quiet' "${tmp}/${file}.tar" "${outfile}" ;;
-        xz) test_routine xz "-${j}" '--compress --quiet' xz '--decompress --quiet' "${tmp}/${file}.tar" "${outfile}" ;;
-        gzip) test_routine gzip "-${j}" '--quiet' gzip '--decompress --quiet' "${tmp}/${file}.tar" "${outfile}" ;;
-        lzma) test_routine xz "-${j}" '--compress --format=lzma --quiet' xz '--decompress --format=lzma --quiet' "${tmp}/${file}.tar" "${outfile}" ;;
-        lzip) test_routine lzip "-${j}" '--quiet' lzip '--decompress --quiet' "${tmp}/${file}.tar" "${outfile}" ;;
-        lzop) test_routine lzop "-${j}" '--delete --quiet' lzop '--decompress --delete --quiet' "${tmp}/${file}.tar" "${outfile}" ;;
-        lbzip2) test_routine lbzip2 "-${j}" "-n ${threads} --quiet" lbzip2 "-n ${threads} --decompress --quiet" "${tmp}/${file}.tar" "${outfile}" ;;
-        pbzip2) test_routine pbzip2 "-${j}" "-p${threads} --quiet" pbzip2 "-p${threads} --decompress --quiet" "${tmp}/${file}.tar" "${outfile}" ;;
-        pigz) test_routine pigz "-${j}" "--processes ${threads} --quiet" pigz "--processes ${threads} --decompress --quiet" "${tmp}/${file}.tar" "${outfile}" ;;
-        pxz) test_routine pxz "-${j}" "--threads ${threads} --quiet" pxz "--threads ${threads} --decompress --quiet" "${tmp}/${file}.tar" "${outfile}" ;;
+        bzip2) test_routine bzip2 '--quiet' bzip2 '--decompress --quiet' "${tmp}/${file}.tar" "-${j}" ;;
+        xz) test_routine xz '--compress --quiet' xz '--decompress --quiet' "${tmp}/${file}.tar" "-${j}" ;;
+        gzip) test_routine gzip '--quiet' gzip '--decompress --quiet' "${tmp}/${file}.tar" "-${j}" ;;
+        lzma) test_routine xz '--compress --format=lzma --quiet' xz '--decompress --format=lzma --quiet' "${tmp}/${file}.tar" "-${j}" ;;
+        lzip) test_routine lzip '--quiet' lzip '--decompress --quiet' "${tmp}/${file}.tar" "-${j}" ;;
+        lzop) test_routine lzop '--delete --quiet' lzop '--decompress --delete --quiet' "${tmp}/${file}.tar" "-${j}" ;;
+        lbzip2) test_routine lbzip2 "-n ${threads} --quiet" lbzip2 "-n ${threads} --decompress --quiet" "${tmp}/${file}.tar" "-${j}" ;;
+        pbzip2) test_routine pbzip2 "-p${threads} --quiet" pbzip2 "-p${threads} --decompress --quiet" "${tmp}/${file}.tar" "-${j}" ;;
+        pigz) test_routine pigz "--processes ${threads} --quiet" pigz "--processes ${threads} --decompress --quiet" "${tmp}/${file}.tar" "-${j}" ;;
+        pxz) test_routine pxz "--threads ${threads} --quiet" pxz "--threads ${threads} --decompress --quiet" "${tmp}/${file}.tar" "-${j}" ;;
       esac
     done
   fi
