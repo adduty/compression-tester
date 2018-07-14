@@ -84,7 +84,7 @@ test_routine() {
   if [[ "${1}" == 'compress' ]]; then
     t_1=$("${timer}" "${time_opts}" "${1}" "${2}" "${5}" 2>&1)
   else
-    t_1=$("${timer}" "${time_opts}" "${1}" "${2}" "${6}" "${5}" 2>&1)
+    t_1=$("${timer}" "${time_opts}" "${1}" ${2} "${6}" "${5}" 2>&1)
   fi
   printf '%s,' "${t_1}" >> "${outfile}"
   stat --printf='%s,' "${5}.${exts[${1}]}" >> "${outfile}"
@@ -102,6 +102,7 @@ max='6'
 file=''
 date=$(date +%T-%d.%b.%Y)
 outfile="comp-test-${date}.csv"
+threads=''
 
 declare -A algs
 declare -A exts
@@ -250,8 +251,6 @@ tmp=$(mktemp --directory /tmp/comp_test_XXX)
 
 cp --recursive "${file}" "${tmp}"
 
-# sha=$(sha256sum ${tmp}/${file})
-
 time_opts='--format=%e'
 
 # initialize outfile with csv header
@@ -260,9 +259,11 @@ printf 'binary,compression level,compression time,compressed size,mpression time
 # do the tests
 if [[ ${zip} == 'on' ]]; then
   for ((i=min;i<=max;i++)); do
-    test_routine zip "-${i}" "--recurse-paths --quiet ${tmp}/${file}" unzip '-q' "${tmp}/${file}" "${outfile}"
+    # unzipping into the existing directory causes unzip to hang
+    test_routine zip "--recurse-paths --quiet ${tmp}/${file}" unzip "-qq -d ${tmp}/tmp_${i}" "${tmp}/${file}" "-${i}"
     # unzip has no option to delete the zip file
     rm "${tmp}/${file}.zip"
+    rm --force --recursive "${tmp}/tmp_${i}"
   done
 fi
 
