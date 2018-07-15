@@ -254,7 +254,11 @@ cp --recursive "${file}" "${tmp}"
 time_opts='--format=%e'
 
 # initialize outfile with csv header
-printf 'binary,compression level,compression time,compressed size,mpression time,threads\n' >> "${outfile}"
+printf 'binary,compression level,compression time,compressed size,compression time,threads\n' >> "${outfile}"
+
+# record uncompressed file size
+orig_size=$(du --bytes "${file}")
+printf '%s,,,,,' "${orig_size}" >> "${outfile}"
 
 # do the tests
 if [[ ${zip} == 'on' ]]; then
