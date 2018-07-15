@@ -5,10 +5,9 @@
 # TODO(aduty): deal with algs that support -0 compression level
 # TODO(aduty): change status for compress alg since it doesn't have compression levels
 # TODO(aduty): add option to allow for multiple iterations (for taking an average- outside of script)?
-# TODO(aduty): add pigz, lbzip2, pbzip2, pxz support
 # TODO(aduty): add checks to make sure version of things e.g. bash is new enough
+# TODO(aduty): measure other stats with time command and add as CSV fields (or allow user to specify time format?)
 
-set -o xtrace
 set -o errexit
 set -o pipefail
 set -o nounset
