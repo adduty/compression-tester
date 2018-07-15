@@ -91,9 +91,9 @@ test_routine() {
   t2=$("${timer}" "${time_opts}" "${3}" ${4} "${5}.${exts[${1}]}" 2>&1)
   printf '%s,' "${t2}" >> "${outfile}"
   if [[ "${1}" == 'lbzip2' ]] || [[ "${1}" == 'pbzip2' ]] || [[ "${1}" == 'pigz' ]] || [[ "${1}" == 'pxz' ]]; then
-    printf '%s\n' "${threads}" >> "${outfile}"
+    printf '%s\r\n' "${threads}" >> "${outfile}"
   else
-    printf '0\n' >> "${outfile}"
+    printf '0\r\n' >> "${outfile}"
   fi
 }
 
@@ -254,11 +254,11 @@ cp --recursive "${file}" "${tmp}"
 time_opts='--format=%e'
 
 # initialize outfile with csv header
-printf 'binary,compression level,compression time,compressed size,compression time,threads\n' >> "${outfile}"
+printf 'binary,compression level,compression time,compressed size,compression time,threads\r\n' >> "${outfile}"
 
 # record uncompressed file size
 orig_size=$(du --bytes "${file}")
-printf '%s,,,,,' "${orig_size}" >> "${outfile}"
+printf '%s,,,,,\r\n' "${orig_size}" >> "${outfile}"
 
 # do the tests
 if [[ ${zip} == 'on' ]]; then
