@@ -1,12 +1,12 @@
 #!/usr/bin/env bash
 
-# TODO(aduty): add ability to plot results?
 # TODO(aduty): add spinner (to indicate activity)?
 # TODO(aduty): deal with algs that support -0 compression level
 # TODO(aduty): change status for compress alg since it doesn't have compression levels
-# TODO(aduty): add option to allow for multiple iterations (for taking an average- outside of script)?
 # TODO(aduty): add checks to make sure version of things e.g. bash is new enough
 # TODO(aduty): measure other stats with time command and add as CSV fields (or allow user to specify time format?)
+# TODO(aduty): add option to turn on all algs except those specified- something like --reverse --zip to enable all but zip
+# TODO(aduty): add support for testing range of numbers of threads
 
 set -o errexit
 set -o pipefail
@@ -19,6 +19,7 @@ usage() {
   echo 'Options:'
   echo '  -f,   --file=FILE     perform compression tests on FILE'
   echo '  -h,   --help          display usage info'
+  echo '  -i,   --iterations=N  perform each test N times'
   echo '  -n,   --minimum=N     minimun compression level (1-9)'
   echo '  -o,   --output=FILE   output results to FILE (comp-test-DATE.csv if unspecified)'
   echo '  -x,   --maximum=N     maximum compression level (1-9)'
@@ -98,6 +99,7 @@ test_routine() {
 
 min='6'
 max='6'
+iterations='1'
 file=''
 date=$(date +%T-%d.%b.%Y)
 outfile="comp-test-${date}.csv"
@@ -153,8 +155,8 @@ exts=(
 
 zip='off'
 
-OPTS=$(getopt --options asmn:x:f:o:ht: --long \
-  minimum:,maximum:,file:,output:,help,threads:,all,single,multi,bzip2,xz,gzip,lzma,lzip,lzop,compress,zip,lbzip2,pbzip2,pigz,pxz \
+OPTS=$(getopt --options asmn:x:f:o:hi:t: --long \
+  minimum:,maximum:,file:,output:,help,iterations:,threads:,all,single,multi,bzip2,xz,gzip,lzma,lzip,lzop,compress,zip,lbzip2,pbzip2,pigz,pxz \
   --name 'compression_test.sh' -- "$@")
 eval set -- "${OPTS}"
 
@@ -175,6 +177,7 @@ while true; do
     -f|--file) file=${2%/}; shift 2 ;;
     -o|--output) outfile=${2}; shift 2 ;;
     -h|--help) usage; shift ;;
+    -i|--iterations) iterations=${2}; shift 2 ;;
     -t|--threads) threads=${2}; shift 2 ;;
     -a|--all) for i in "${!algs[@]}"; do  algs[$i]='on'; done; zip='on'; shift ;;
     -s|--single) for i in "${st_algs[@]}"; do algs[${i}]='on'; done; zip='on'; shift ;;
@@ -237,12 +240,31 @@ if [[ ! -z ${threads} ]]; then
   fi
 fi
 
-# make sure conditions are appropriate for testing
-echo 'TO GET VALID RESULTS, IT IS VERY IMPORTANT THAT YOU ARE NOT DOING ANYTHING ELSE CPU OR MEMORY INTENSIVE. Proceed (Y/N)?'
-read ans
-if [[ ! ${ans// /} =~ ${pat} ]]; then
-  exit 1
+# make sure iterations is positive integer
+if [[ ! -z ${iterations} ]]; then
+  pat_iterations="^[0-9]+$"
+  if [[ ! ${iterations// /} =~ ${pat_iterations// /} ]] || [[ ${iterations// /} == '0' ]]; then
+    echo "Number of iterations specified ('${iterations}') is not a positive integer."
+    exit 1
+  fi
 fi
+
+# check_int() {
+#   if [[ ! -z ${1} ]]; then
+#     pat_threads="^[0-9]+$"
+#     if [[ ! ${1// /} =~ ${pat_threads// /} ]] || [[ ${1// /} == '0' ]]; then
+#       echo "Number of ${2} specified ('${1}') is not a positive integer."
+#       exit 1
+#     fi
+#   fi
+# }
+
+# make sure conditions are appropriate for testing
+# echo 'TO GET VALID RESULTS, IT IS VERY IMPORTANT THAT YOU ARE NOT DOING ANYTHING ELSE CPU OR MEMORY INTENSIVE. Proceed (Y/N)?'
+# read ans
+# if [[ ! ${ans// /} =~ ${pat} ]]; then
+#   exit 1
+# fi
 
 bin_check
 
@@ -253,20 +275,22 @@ cp --recursive "${file}" "${tmp}"
 time_opts='--format=%e'
 
 # initialize outfile with csv header
-printf 'binary,compression level,compression time,compressed size,compression time,threads\r\n' >> "${outfile}"
+printf 'binary,compression_level,compression_time,compressed_size,decompression_time,threads\r\n' >> "${outfile}"
 
 # record uncompressed file size
-orig_size=$(du --bytes "${file}")
+orig_size=$(du --bytes "${file}" | cut --fields 1)
 printf '%s,,,,,\r\n' "${orig_size}" >> "${outfile}"
 
 # do the tests
 if [[ ${zip} == 'on' ]]; then
   for ((i=min;i<=max;i++)); do
-    # unzipping into the existing directory causes unzip to hang
-    test_routine zip "--recurse-paths --quiet ${tmp}/${file}" unzip "-qq -d ${tmp}/tmp_${i}" "${tmp}/${file}" "-${i}"
-    # unzip has no option to delete the zip file
-    rm "${tmp}/${file}.zip"
-    rm --force --recursive "${tmp}/tmp_${i}"
+    for ((iter='1';iter<=iterations;iter++)); do
+      # unzipping into the existing directory causes unzip to hang
+      test_routine zip "--recurse-paths --quiet ${tmp}/${file}" unzip "-qq -d ${tmp}/tmp_${i}" "${tmp}/${file}" "-${i}"
+      # unzip has no option to delete the zip file
+      rm "${tmp}/${file}.zip"
+      rm --force --recursive "${tmp}/tmp_${i}"
+    done
   done
 fi
 
@@ -281,22 +305,26 @@ done
 for i in "${!algs[@]}"; do
   if [[ ${algs[$i]} == 'on' ]]; then
     if [[ ${i} == 'compress' ]]; then
-      test_routine compress "-f" uncompress "-f" "${tmp}/${file}.tar" ''
+      for ((iter='1';iter<=iterations;iter++)); do
+        test_routine compress "-f" uncompress "-f" "${tmp}/${file}.tar" ''
+      done
     fi
     # for j in $(seq ${min} ${max}); do
     for ((j=min;j<=max;j++)); do
-      case "${i}" in
-        bzip2) test_routine bzip2 '--quiet' bzip2 '--decompress --quiet' "${tmp}/${file}.tar" "-${j}" ;;
-        xz) test_routine xz '--compress --quiet' xz '--decompress --quiet' "${tmp}/${file}.tar" "-${j}" ;;
-        gzip) test_routine gzip '--quiet' gzip '--decompress --quiet' "${tmp}/${file}.tar" "-${j}" ;;
-        lzma) test_routine lzma '--compress --quiet' unlzma '--quiet' "${tmp}/${file}.tar" "-${j}" ;;
-        lzip) test_routine lzip '--quiet' lzip '--decompress --quiet' "${tmp}/${file}.tar" "-${j}" ;;
-        lzop) test_routine lzop '--delete --quiet' lzop '--decompress --delete --quiet' "${tmp}/${file}.tar" "-${j}" ;;
-        lbzip2) test_routine lbzip2 "-n ${threads} --quiet" lbzip2 "-n ${threads} --decompress --quiet" "${tmp}/${file}.tar" "-${j}" ;;
-        pbzip2) test_routine pbzip2 "-p${threads} --quiet" pbzip2 "-p${threads} --decompress --quiet" "${tmp}/${file}.tar" "-${j}" ;;
-        pigz) test_routine pigz "--processes ${threads} --quiet" pigz "--processes ${threads} --decompress --quiet" "${tmp}/${file}.tar" "-${j}" ;;
-        pxz) test_routine pxz "--threads ${threads} --quiet" pxz "--threads ${threads} --decompress --quiet" "${tmp}/${file}.tar" "-${j}" ;;
-      esac
+      for ((iter='1';iter<=iterations;iter++)); do
+        case "${i}" in
+          bzip2) test_routine bzip2 '--quiet' bzip2 '--decompress --quiet' "${tmp}/${file}.tar" "-${j}" ;;
+          xz) test_routine xz '--compress --quiet' xz '--decompress --quiet' "${tmp}/${file}.tar" "-${j}" ;;
+          gzip) test_routine gzip '--quiet' gzip '--decompress --quiet' "${tmp}/${file}.tar" "-${j}" ;;
+          lzma) test_routine lzma '--compress --quiet' unlzma '--quiet' "${tmp}/${file}.tar" "-${j}" ;;
+          lzip) test_routine lzip '--quiet' lzip '--decompress --quiet' "${tmp}/${file}.tar" "-${j}" ;;
+          lzop) test_routine lzop '--delete --quiet' lzop '--decompress --delete --quiet' "${tmp}/${file}.tar" "-${j}" ;;
+          lbzip2) test_routine lbzip2 "-n ${threads} --quiet" lbzip2 "-n ${threads} --decompress --quiet" "${tmp}/${file}.tar" "-${j}" ;;
+          pbzip2) test_routine pbzip2 "-p${threads} --quiet" pbzip2 "-p${threads} --decompress --quiet" "${tmp}/${file}.tar" "-${j}" ;;
+          pigz) test_routine pigz "--processes ${threads} --quiet" pigz "--processes ${threads} --decompress --quiet" "${tmp}/${file}.tar" "-${j}" ;;
+          pxz) test_routine pxz "--threads ${threads} --quiet" pxz "--threads ${threads} --decompress --quiet" "${tmp}/${file}.tar" "-${j}" ;;
+        esac
+      done
     done
   fi
 done
