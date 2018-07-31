@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 
 # TODO(aduty): add spinner (to indicate activity)?
-# TODO(aduty): deal with algs that support -0 compression level
+# TODO(aduty): deal with algs that support 0 compression level and compression level > 9 (lz4)
 # TODO(aduty): change status for compress alg since it doesn't have compression levels
 # TODO(aduty): add checks to make sure version of things e.g. bash is new enough
 # TODO(aduty): measure other stats with time command and add as CSV fields (or allow user to specify time format?)
@@ -36,6 +36,7 @@ usage() {
   echo '        --lzma          enable lzma testing'
   echo '        --lzip          enable lzip testing'
   echo '        --lzop          enable lzop testing'
+  echo '        --lz4           enable lz4 testing'
   echo '        --compress      enable compress testing'
   echo '        --zip           enable zip testing'
   echo '        --lbzip2        enable lbzip2 (multi-threaded bzip2) support'
@@ -114,6 +115,7 @@ algs=(
   ['lzma']='off'
   ['lzip']='off'
   ['lzop']='off'
+  ['lz4']='off'
   ['compress']='off'
   ['lbzip2']='off'
   ['pbzip2']='off'
@@ -128,6 +130,7 @@ st_algs=(
   'lzma'
   'lzip'
   'lzop'
+  'lz4'
   'compress'
 )
 
@@ -145,6 +148,7 @@ exts=(
   ['lzma']='lzma'
   ['lzip']='lz'
   ['lzop']='lzo'
+  ['lz4']='lz4'
   ['compress']='Z'
   ['lbzip2']='bz2'
   ['pbzip2']='bz2'
@@ -156,7 +160,7 @@ exts=(
 zip='off'
 
 OPTS=$(getopt --options asmn:x:f:o:hi:t: --long \
-  minimum:,maximum:,file:,output:,help,iterations:,threads:,all,single,multi,bzip2,xz,gzip,lzma,lzip,lzop,compress,zip,lbzip2,pbzip2,pigz,pxz \
+  minimum:,maximum:,file:,output:,help,iterations:,threads:,all,single,multi,bzip2,xz,gzip,lzma,lzip,lzop,lz4,compress,zip,lbzip2,pbzip2,pigz,pxz \
   --name 'compression_test.sh' -- "$@")
 eval set -- "${OPTS}"
 
@@ -188,6 +192,7 @@ while true; do
     --lzma) algs['lzma']='on'; shift ;;
     --lzip) algs['lzip']='on'; shift ;;
     --lzop) algs['lzop']='on'; shift ;;
+    --lz4) algs['lz4']='on'; shift ;;
     --compress) algs['compress']='on'; shift ;;
     --zip) zip='on'; shift ;;
     --lbzip2) algs['lbzip2']='on'; shift ;;
@@ -318,7 +323,9 @@ for i in "${!algs[@]}"; do
           gzip) test_routine gzip '--quiet' gzip '--decompress --quiet' "${tmp}/${file}.tar" "-${j}" ;;
           lzma) test_routine lzma '--compress --quiet' unlzma '--quiet' "${tmp}/${file}.tar" "-${j}" ;;
           lzip) test_routine lzip '--quiet' lzip '--decompress --quiet' "${tmp}/${file}.tar" "-${j}" ;;
+          # is --delete supposed to be in both sets of flags?
           lzop) test_routine lzop '--delete --quiet' lzop '--decompress --delete --quiet' "${tmp}/${file}.tar" "-${j}" ;;
+          lz4) test_routine lz4 '--quiet' lz4 '--decompress --quiet' "${tmp}/${file}.tar" "-${j}" ;;
           lbzip2) test_routine lbzip2 "-n ${threads} --quiet" lbzip2 "-n ${threads} --decompress --quiet" "${tmp}/${file}.tar" "-${j}" ;;
           pbzip2) test_routine pbzip2 "-p${threads} --quiet" pbzip2 "-p${threads} --decompress --quiet" "${tmp}/${file}.tar" "-${j}" ;;
           pigz) test_routine pigz "--processes ${threads} --quiet" pigz "--processes ${threads} --decompress --quiet" "${tmp}/${file}.tar" "-${j}" ;;
