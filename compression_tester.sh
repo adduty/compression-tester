@@ -1,13 +1,13 @@
 #!/usr/bin/env bash
 
 # TODO(aduty): add spinner (to indicate activity)?
-# TODO(aduty): deal with algs that support 0 compression level and compression level > 9 (lz4)
 # TODO(aduty): change status for compress alg since it doesn't have compression levels
 # TODO(aduty): add checks to make sure version of things e.g. bash is new enough
 # TODO(aduty): measure other stats with time command and add as CSV fields (or allow user to specify time format?)
 # TODO(aduty): add option to turn on all algs except those specified- something like --reverse --zip to enable all but zip
 # TODO(aduty): add support for testing range of numbers of threads
 
+set -o xtrace
 set -o errexit
 set -o pipefail
 set -o nounset
@@ -20,9 +20,9 @@ usage() {
   echo '  -f,   --file=FILE     perform compression tests on FILE'
   echo '  -h,   --help          display usage info'
   echo '  -i,   --iterations=N  perform each test N times'
-  echo '  -n,   --minimum=N     minimun compression level (1-9)'
+  echo '  -n,   --minimum=N     minimun compression level (0-16)'
   echo '  -o,   --output=FILE   output results to FILE (comp-test-DATE.csv if unspecified)'
-  echo '  -x,   --maximum=N     maximum compression level (1-9)'
+  echo '  -x,   --maximum=N     maximum compression level (0-16)'
   echo '  -t,   --threads       number of threads to use for multi-threaded binaries (default 8)'
   echo
   echo 'Algorithms:'
@@ -45,6 +45,8 @@ usage() {
   echo '        --pxz           enable pxz (parallel LZMA compressor using XZ) support'
 
   echo 'By default, min=6 and max=6. You can change one or both.'
+  echo 'Most implementations only support compression levels 1-9.'
+  echo 'Non-applicable compression levels will be ignored.'
   exit 1
 }
 
@@ -317,20 +319,30 @@ for i in "${!algs[@]}"; do
     # for j in $(seq ${min} ${max}); do
     for ((j=min;j<=max;j++)); do
       for ((iter='1';iter<=iterations;iter++)); do
-        case "${i}" in
-          bzip2) test_routine bzip2 '--quiet' bzip2 '--decompress --quiet' "${tmp}/${file}.tar" "-${j}" ;;
-          xz) test_routine xz '--compress --quiet' xz '--decompress --quiet' "${tmp}/${file}.tar" "-${j}" ;;
-          gzip) test_routine gzip '--quiet' gzip '--decompress --quiet' "${tmp}/${file}.tar" "-${j}" ;;
-          lzma) test_routine lzma '--compress --quiet' unlzma '--quiet' "${tmp}/${file}.tar" "-${j}" ;;
-          lzip) test_routine lzip '--quiet' lzip '--decompress --quiet' "${tmp}/${file}.tar" "-${j}" ;;
-          # is --delete supposed to be in both sets of flags?
-          lzop) test_routine lzop '--delete --quiet' lzop '--decompress --delete --quiet' "${tmp}/${file}.tar" "-${j}" ;;
-          lz4) test_routine lz4 '--quiet' lz4 '--decompress --quiet' "${tmp}/${file}.tar" "-${j}" ;;
-          lbzip2) test_routine lbzip2 "-n ${threads} --quiet" lbzip2 "-n ${threads} --decompress --quiet" "${tmp}/${file}.tar" "-${j}" ;;
-          pbzip2) test_routine pbzip2 "-p${threads} --quiet" pbzip2 "-p${threads} --decompress --quiet" "${tmp}/${file}.tar" "-${j}" ;;
-          pigz) test_routine pigz "--processes ${threads} --quiet" pigz "--processes ${threads} --decompress --quiet" "${tmp}/${file}.tar" "-${j}" ;;
-          pxz) test_routine pxz "--threads ${threads} --quiet" pxz "--threads ${threads} --decompress --quiet" "${tmp}/${file}.tar" "-${j}" ;;
-        esac
+        if [[ ${j} -eq 0 ]]; then
+          case "${i}" in
+            xz) test_routine xz '--compress --quiet' xz '--decompress --quiet' "${tmp}/${file}.tar" "-${j}" ;;
+            lzma) test_routine lzma '--compress --quiet' unlzma '--quiet' "${tmp}/${file}.tar" "-${j}" ;;
+            lzip) test_routine lzip '--quiet' lzip '--decompress --quiet' "${tmp}/${file}.tar" "-${j}" ;;
+          esac
+        elif [[ ${j} -gt 0 ]] && [[ ${j} -lt 10 ]]; then
+          case "${i}" in
+            bzip2) test_routine bzip2 '--quiet' bzip2 '--decompress --quiet' "${tmp}/${file}.tar" "-${j}" ;;
+            xz) test_routine xz '--compress --quiet' xz '--decompress --quiet' "${tmp}/${file}.tar" "-${j}" ;;
+            gzip) test_routine gzip '--quiet' gzip '--decompress --quiet' "${tmp}/${file}.tar" "-${j}" ;;
+            lzma) test_routine lzma '--compress --quiet' unlzma '--quiet' "${tmp}/${file}.tar" "-${j}" ;;
+            lzip) test_routine lzip '--quiet' lzip '--decompress --quiet' "${tmp}/${file}.tar" "-${j}" ;;
+            # is --delete supposed to be in both sets of flags?
+            lzop) test_routine lzop '--delete --quiet' lzop '--decompress --delete --quiet' "${tmp}/${file}.tar" "-${j}" ;;
+            lz4) test_routine lz4 '--quiet' lz4 '--decompress --quiet' "${tmp}/${file}.tar" "-${j}" ;;
+            lbzip2) test_routine lbzip2 "-n ${threads} --quiet" lbzip2 "-n ${threads} --decompress --quiet" "${tmp}/${file}.tar" "-${j}" ;;
+            pbzip2) test_routine pbzip2 "-p${threads} --quiet" pbzip2 "-p${threads} --decompress --quiet" "${tmp}/${file}.tar" "-${j}" ;;
+            pigz) test_routine pigz "--processes ${threads} --quiet" pigz "--processes ${threads} --decompress --quiet" "${tmp}/${file}.tar" "-${j}" ;;
+            pxz) test_routine pxz "--threads ${threads} --quiet" pxz "--threads ${threads} --decompress --quiet" "${tmp}/${file}.tar" "-${j}" ;;
+          esac
+        elif [[ ${j} -gt 9 ]]; then
+            test_routine lz4 '--quiet' lz4 '--decompress --quiet' "${tmp}/${file}.tar" "-${j}"
+        fi
       done
     done
   fi
