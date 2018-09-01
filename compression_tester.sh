@@ -276,13 +276,12 @@ fi
 for i in "${mt_algs[@]}"; do
   if [[ ${algs[$i]} == 'on' ]]; then
     if [[ -z ${threads} ]]; then
-      echo "You must specify number of threads if usinig multi-threaded implementation (${i})."
+      echo "You must specify number of threads if using multi-threaded implementation (${i})."
       exit 1
     fi
     break
   fi
 done
-
 
 # make sure threads is positive integer
 if [[ ! -z ${threads} ]]; then
