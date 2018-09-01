@@ -134,6 +134,8 @@ declare -a comp_args_7zr
 declare -a decomp_args_7zr
 
 declare -A algs
+declare -a st_algs
+declare -a mt_algs
 declare -A exts
 algs=(
   ['bzip2']='off'
