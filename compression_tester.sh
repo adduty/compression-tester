@@ -17,32 +17,51 @@ timer=$(which time)
 usage() {
   echo "Usage: $0 [OPTION...] FILE..."
   echo 'Options:'
-  echo '  -f,   --file=FILE     perform compression tests on FILE'
-  echo '  -h,   --help          display usage info'
-  echo '  -i,   --iterations=N  perform each test N times'
-  echo '  -n,   --minimum=N     minimun compression level (0-16)'
-  echo '  -o,   --output=FILE   output results to FILE (comp-test-DATE.csv if unspecified)'
-  echo '  -x,   --maximum=N     maximum compression level (0-16)'
-  echo '  -t,   --threads       number of threads to use for multi-threaded binaries (default 8)'
+  echo '  -f,   --file=FILE         perform compression tests on FILE'
+  echo '  -h,   --help              display usage info'
+  echo '  -i,   --iterations=N      perform each test N times'
+  echo '  -n,   --minimum=N         minimun compression level (0-16)'
+  echo '  -o,   --output=FILE       output results to FILE (comp-test-DATE.csv if unspecified)'
+  echo '  -x,   --maximum=N         maximum compression level (0-16)'
+  echo '  -t,   --threads           number of threads to use for multi-threaded binaries (default 8)'
   echo
   echo 'Algorithms:'
   echo
-  echo '  -a,   --all           enable all tests'
-  echo '  -s,   --single        enable all single-threaded tests'
-  echo '  -m,   --multi         enable all multi-threaded tests'
-  echo '        --bzip2         enable bzip2 testing'
-  echo '        --xz            enable xz testing'
-  echo '        --gzip          enable gzip testing'
-  echo '        --lzma          enable lzma testing'
-  echo '        --lzip          enable lzip testing'
-  echo '        --lzop          enable lzop testing'
-  echo '        --lz4           enable lz4 testing'
-  echo '        --compress      enable compress testing'
-  echo '        --zip           enable zip testing'
-  echo '        --lbzip2        enable lbzip2 (multi-threaded bzip2) support'
-  echo '        --pbzip2        enable pbzip2 (parallel implementation of bzip2) support'
-  echo '        --pigz          enable pigz (parallel implementation of gzip) support'
-  echo '        --pxz           enable pxz (parallel LZMA compressor using XZ) support'
+  echo '  -a,   --all               enable all tests'
+  echo '  -s,   --single            enable all single-threaded tests'
+  echo '  -m,   --multi             enable all multi-threaded tests'
+  echo '        --bzip2             enable bzip2 testing'
+  echo '        --xz                enable xz testing'
+  echo '        --gzip              enable gzip testing'
+  echo '        --lzma              enable lzma testing'
+  echo '        --lzip              enable lzip testing'
+  echo '        --lzop              enable lzop testing'
+  echo '        --lz4               enable lz4 testing'
+  echo '        --7z                enable 7z testing'
+  echo '        --7za               enable 7za testing'
+  echo '        --7zr               enable 7zrtesting'
+  echo '        --compress          enable compress testing'
+  echo '        --zip               enable zip testing'
+  echo '        --lbzip2            enable lbzip2 (multi-threaded bzip2) support'
+  echo '        --pbzip2            enable pbzip2 (parallel implementation of bzip2) support'
+  echo '        --pigz              enable pigz (parallel implementation of gzip) support'
+  echo '        --pxz               enable pxz (parallel LZMA compressor using XZ) support'
+  echo 'Algorithm Options:'
+  echo '        --7z-comp-args      specify arguments for 7z'
+  echo '        --7z-decomp-args    specify argument string for 7z'
+  echo '        --7za-comp-args     specify argument string for 7za'
+  echo '        --7za-decomp-args   specify argument string for 7za'
+  echo '        --7zr-comp-args     specify argument string for 7zr'
+  echo '        --7zr-decomp-args   specify argument string for 7zr'
+
+  echo 'NOTE: ARGUMENT STRING MUST BE A VALID 7z(a/r) COMMAND (DO NOT SPECIFY COMPRESSION LEVEL). '
+  echo 'You can pass multiple compression and decompression strings, but they must be passed in pairs and in quotes.'
+  echo 'Example: compression-tester --7z --7z-comp-args "a test.zip" --7z-decomp-args "x test.zip" --7z-comp-args "a -t7z -m0=lzma -mfb=64 -md=32m -ms=on archive.7z" --7z-decomp-args "x archive.7z"'
+  echo 'IT WILL GET PASSED LIKE THIS:'
+  echo '7z "a test.zip" "$COMPRESSION_LEVEL" "$FILE"'
+  echo '7z "x test.zip" "$COMPRESSION_LEVEL" "$FILE"'
+  echo '7z "a -t7z -m0=lzma -mfb=64 -md=32m -ms=on archive.7z" "$COMPRESSION_LEVEL" "$FILE"'
+  echo '7z "x archive.7z" "$COMPRESSION_LEVEL" "$FILE"'
 
   echo 'By default, min=6 and max=6. You can change one or both.'
   echo 'Most implementations only support compression levels 1-9.'
@@ -107,6 +126,12 @@ file=''
 date=$(date +%T-%d.%b.%Y)
 outfile="comp-test-${date}.csv"
 threads=''
+declare -a comp_args_7z
+declare -a decomp_args_7z
+declare -a comp_args_7za
+declare -a decomp_args_7za
+declare -a comp_args_7zr
+declare -a decomp_args_7zr
 
 declare -A algs
 declare -A exts
@@ -123,6 +148,9 @@ algs=(
   ['pbzip2']='off'
   ['pigz']='off'
   ['pxz']='off'
+  ['7z']='off'
+  ['7za']='off'
+  ['7zr']='off'
 )
 
 st_algs=(
@@ -134,6 +162,9 @@ st_algs=(
   'lzop'
   'lz4'
   'compress'
+  '7z'
+  '7za'
+  '7zr'
 )
 
 mt_algs=(
@@ -157,13 +188,18 @@ exts=(
   ['pigz']='gz'
   ['pxz']='xz'
   ['zip']='zip'
+  ['7z']='7z'
+  ['7za']='7z'
+  ['7zr']='7z'
 )
 
 zip='off'
 
-OPTS=$(getopt --options asmn:x:f:o:hi:t: --long \
-  minimum:,maximum:,file:,output:,help,iterations:,threads:,all,single,multi,bzip2,xz,gzip,lzma,lzip,lzop,lz4,compress,zip,lbzip2,pbzip2,pigz,pxz \
-  --name 'compression_test.sh' -- "$@")
+OPTS=$(getopt --options asmn:x:f:o:hi:t: \
+--long minimum:,maximum:,file:,output:,help,iterations:,threads:,all,single,multi,\
+bzip2,xz,gzip,lzma,lzip,lzop,lz4,compress,zip,7z,7za,7zr,lbzip2,pbzip2,pigz,pxz,\
+7z-comp-args:,7z-decomp-args:,7za-comp-args:,7za-decomp-args:,7zr-comp-args:,7zr-decomp-args: \
+--name "${0}" -- "$@")
 eval set -- "${OPTS}"
 
 while true; do
@@ -197,6 +233,14 @@ while true; do
     --lz4) algs['lz4']='on'; shift ;;
     --compress) algs['compress']='on'; shift ;;
     --zip) zip='on'; shift ;;
+    --7z) algs['7z']='on' shift ;;
+    --7zx) algs['7zx']='on' shift ;;
+    --7z-comp-args) comp_args_7z+="${2}"; shift 2 ;;
+    --7z-decomp-args) decomp_args_7z+="${2}"; shift 2 ;;
+    --7za-comp-args) comp_args_7za+="${2}"; shift 2 ;;
+    --7za-decomp-args) decomp_args_7za+="${2}"; shift 2 ;;
+    --7zr-comp-args) comp_args_7zr+="${2}"; shift 2 ;;
+    --7zr-decomp-args) decomp_args_7zr+="${2}"; shift 2 ;;
     --lbzip2) algs['lbzip2']='on'; shift ;;
     --pbzip2) algs['pbzip2']='on'; shift ;;
     --pigz) algs['pigz']='on'; shift ;;
@@ -254,6 +298,22 @@ if [[ ! -z ${iterations} ]]; then
     echo "Number of iterations specified ('${iterations}') is not a positive integer."
     exit 1
   fi
+fi
+
+# make sure number of compression and decompression strings for 7z(a/r)
+if [[ ${#comp_args_7z[@]} -ne ${#decomp_args_7z[@]} ]]; then
+  echo 'You must provide 7z compression and decompression strings in pairs.'
+  exit 1
+fi
+
+if [[ ${#comp_args_7za[@]} -ne ${#decomp_args_7za[@]} ]]; then
+  echo 'You must provide 7za compression and decompression strings in pairs.'
+  exit 1
+fi
+
+if [[ ${#comp_args_7zr[@]} -ne ${#decomp_args_7zr[@]} ]]; then
+  echo 'You must provide 7zr compression and decompression strings in pairs.'
+  exit 1
 fi
 
 # check_int() {
@@ -335,6 +395,9 @@ for i in "${!algs[@]}"; do
             # is --delete supposed to be in both sets of flags?
             lzop) test_routine lzop '--delete --quiet' lzop '--decompress --delete --quiet' "${tmp}/${file}.tar" "-${j}" ;;
             lz4) test_routine lz4 '--quiet' lz4 '--decompress --quiet' "${tmp}/${file}.tar" "-${j}" ;;
+            7z) for ((k=0;k<${#comp_args_7z[@]};k++)); do test_routine 7z "a ${comp_args_7z[k]}" 7z "x ${decomp_args_7z[k]}" "${tmp}/${file}.tar" "-${j}"; done ;;
+            7za) test_routine 7za "a ${comp_args_7za}" 7za "x ${decomp_args_7za}" "${tmp}/${file}.tar" "-mx${j}" ;;
+            7zr) test_routine 7zr "a ${comp_args_7zr}" 7zr "x ${decomp_args_7zr}" "${tmp}/${file}.tar" "-mx${j}" ;;
             lbzip2) test_routine lbzip2 "-n ${threads} --quiet" lbzip2 "-n ${threads} --decompress --quiet" "${tmp}/${file}.tar" "-${j}" ;;
             pbzip2) test_routine pbzip2 "-p${threads} --quiet" pbzip2 "-p${threads} --decompress --quiet" "${tmp}/${file}.tar" "-${j}" ;;
             pigz) test_routine pigz "--processes ${threads} --quiet" pigz "--processes ${threads} --decompress --quiet" "${tmp}/${file}.tar" "-${j}" ;;
