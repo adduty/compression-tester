@@ -209,20 +209,20 @@ while true; do
     -n|--minimum)
       case "${2}" in
         "") min='1'; shift 2 ;;
-        *) min=${2}; shift 2 ;;
+        *) min="${2}"; shift 2 ;;
       esac
       ;;
     -x|--maximum)
       case "${2}" in
         "") max='9'; shift 2 ;;
-        *) max=${2}; shift 2 ;;
+        *) max="${2}"; shift 2 ;;
       esac
       ;;
-    -f|--file) file=${2%/}; shift 2 ;;
-    -o|--output) outfile=${2}; shift 2 ;;
+    -f|--file) file="${2%/}"; shift 2 ;;
+    -o|--output) outfile="${2}"; shift 2 ;;
     -h|--help) usage; shift ;;
-    -i|--iterations) iterations=${2}; shift 2 ;;
-    -t|--threads) threads=${2}; shift 2 ;;
+    -i|--iterations) iterations="${2}"; shift 2 ;;
+    -t|--threads) threads="${2}"; shift 2 ;;
     -a|--all) for i in "${!algs[@]}"; do  algs[$i]='on'; done; zip='on'; shift ;;
     -s|--single) for i in "${st_algs[@]}"; do algs[${i}]='on'; done; zip='on'; shift ;;
     -m|--multi) for i in "${mt_algs[@]}"; do algs[${i}]='on'; done; shift ;;
